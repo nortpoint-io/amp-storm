@@ -3,6 +3,7 @@ var browserSync = require('browser-sync').create();
 var sass = require('gulp-sass');
 var del = require('del');
 var sequence = require('run-sequence');
+var imagemin = require('gulp-imagemin');
 
 var SRC_DIR = 'src';
 var BUILD_DIR = 'build';
@@ -31,9 +32,18 @@ gulp.task('serve', ['build'], function() {
 
     gulp.watch(SRC_DIR + '/*.html', ['copy-html']);
     gulp.watch(SRC_DIR + '/scss/*.scss', ['sass']);
+    gulp.watch(SRC_DIR + '/images/*', ['imagemin']);
 
     gulp.watch(BUILD_DIR + '/*.html')
         .on('change', browserSync.reload);
+    gulp.watch(BUILD_DIR + '/images/*')
+        .on('change', browserSync.reload);
+});
+
+gulp.task('imagemin', function() {
+    return gulp.src(SRC_DIR + '/images/*')
+        .pipe(imagemin())
+        .pipe(gulp.dest(BUILD_DIR + '/images'))
 });
 
 gulp.task('sass', function() {
@@ -46,7 +56,7 @@ gulp.task('sass', function() {
 gulp.task('build', function(callback) {
     sequence(
         'clean',
-        ['copy', 'sass'],
+        ['copy', 'sass', 'imagemin'],
         callback
     );
 });
