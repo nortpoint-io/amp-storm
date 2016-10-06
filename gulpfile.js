@@ -5,6 +5,7 @@ var del = require('del');
 var sequence = require('run-sequence');
 var imagemin = require('gulp-imagemin');
 var csso = require('gulp-csso');
+var htmlmin = require('gulp-htmlmin');
 
 var SRC_DIR = 'src';
 var BUILD_DIR = 'build';
@@ -13,25 +14,19 @@ gulp.task('clean', function() {
     return del(BUILD_DIR);
 });
 
-gulp.task('copy-html', function() {
-    return gulp.src(SRC_DIR + '/*.html')
-                .pipe(gulp.dest(BUILD_DIR));
-});
-
 gulp.task('copy-favicons', function() {
     return gulp.src(SRC_DIR + '/favicons/**/*')
                 .pipe(gulp.dest(BUILD_DIR));
 });
 
 gulp.task('copy', [
-    'copy-html',
     'copy-favicons'
 ]);
 
 gulp.task('serve', ['build'], function() {
     browserSync.init({ server: './' + BUILD_DIR });
 
-    gulp.watch(SRC_DIR + '/*.html', ['copy-html']);
+    gulp.watch(SRC_DIR + '/*.html', ['minify-html']);
     gulp.watch(SRC_DIR + '/scss/*.scss', ['minify-css']);
     gulp.watch(SRC_DIR + '/images/*', ['imagemin']);
 
@@ -60,10 +55,21 @@ gulp.task('minify-css', ['sass'], function () {
         .pipe(browserSync.stream());
 });
 
+gulp.task('minify-html', function() {
+  return gulp.src(SRC_DIR + '/*.html')
+    .pipe(htmlmin({collapseWhitespace: true}))
+    .pipe(gulp.dest(BUILD_DIR));
+});
+
+gulp.task('minify', [
+    'minify-css',
+    'minify-html'
+]);
+
 gulp.task('build', function(callback) {
     sequence(
         'clean',
-        ['copy', 'minify-css', 'imagemin'],
+        ['copy', 'minify', 'imagemin'],
         callback
     );
 });
