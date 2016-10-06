@@ -7,6 +7,7 @@ var imagemin = require('gulp-imagemin');
 var csso = require('gulp-csso');
 var htmlmin = require('gulp-htmlmin');
 var htmlreplace = require('gulp-html-replace');
+var purify = require('gulp-purifycss');
 
 var SRC_DIR = 'src';
 var BUILD_DIR = 'build';
@@ -48,18 +49,15 @@ gulp.task('copy-favicons', function() {
                 .pipe(gulp.dest(DIST_DIR));
 });
 
-gulp.task('copy', [
-    'copy-favicons'
-]);
-
 gulp.task('serve', ['build'], function() {
     browserSync.init({ server: './' + DIST_DIR });
 
-    gulp.watch(SRC_DIR + '/*.html', ['copy-html']);
+    gulp.watch([SRC_DIR + '/index.html', SRC_DIR + '/page.html'], ['copy-html']);
     gulp.watch(BUILD_DIR + '/*.html', ['minify-html']);
     gulp.watch(SRC_DIR + '/scss/*.scss', ['styles']);
     gulp.watch(SRC_DIR + '/images/*', ['imagemin']);
     gulp.watch(BUILD_DIR + '/css/page.css', ['copy-styles']);
+    gulp.watch([SRC_DIR + '/page.amp.html', BUILD_DIR + '/css/amp.css'], ['make-amp-page']);
 
     gulp.watch(DIST_DIR + '/*.html')
         .on('change', browserSync.reload);
@@ -74,26 +72,38 @@ gulp.task('imagemin', function() {
 });
 
 gulp.task('minify-html', function() {
-  return gulp.src(BUILD_DIR + '/*.html')
-    .pipe(htmlmin({collapseWhitespace: true}))
-    .pipe(gulp.dest(DIST_DIR));
+    return gulp.src(BUILD_DIR + '/*.html')
+        .pipe(htmlmin({collapseWhitespace: true}))
+        .pipe(gulp.dest(DIST_DIR));
+});
+
+gulp.task('minify-amp-html', function() {
+    return gulp.src(BUILD_DIR + '/page.amp.html')
+        .pipe(htmlmin({collapseWhitespace: true}))
+        .pipe(gulp.dest(DIST_DIR));
 });
 
 gulp.task('inline-css', function() {
-  return gulp.src(SOURCE.AMPHTML)
-    .pipe(htmlreplace({
-      'cssInline': {
-        'src': gulp.src(SOURCE.CLEANED_CSS).pipe(cleanCSS()),
-        'tpl': '<style amp-custom>%s</style>'
-      }
-    }))
-    .pipe(gulp.dest(BUILD_PATH));
+    return gulp.src(SRC_DIR + '/page.amp.html')
+        .pipe(htmlreplace({
+            'css': {
+                'src': gulp.src(BUILD_DIR + '/css/amp.css')
+                        .pipe(purify([SRC_DIR + '/page.amp.html'])),
+                'tpl': '<style amp-custom>%s</style>'
+            }
+        }))
+        .pipe(gulp.dest(BUILD_DIR));
+});
+
+gulp.task('make-amp-page', function(callback) {
+    sequence('inline-css', 'minify-amp-html', callback);
 });
 
 gulp.task('build', function(callback) {
     sequence(
         'clean',
         ['styles', 'copy-html'],
+        'inline-css',
         ['copy-favicons', 'copy-styles', 'minify-html', 'imagemin'],
         callback
     );
