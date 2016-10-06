@@ -31,6 +31,9 @@ gulp.task('serve', ['build'], function() {
 
     gulp.watch(SRC_DIR + '/*.html', ['copy-html']);
     gulp.watch(SRC_DIR + '/scss/*.scss', ['sass']);
+
+    gulp.watch(BUILD_DIR + '/*.html')
+        .on('change', browserSync.reload);
 });
 
 gulp.task('sass', function() {
