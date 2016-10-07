@@ -88,7 +88,8 @@ gulp.task('inline-css', function() {
         .pipe(htmlreplace({
             'css': {
                 'src': gulp.src(BUILD_DIR + '/css/amp.css')
-                        .pipe(purify([SRC_DIR + '/page.amp.html'])),
+                        .pipe(purify([SRC_DIR + '/page.amp.html']))
+                        .pipe(csso()),
                 'tpl': '<style amp-custom>%s</style>'
             }
         }))
